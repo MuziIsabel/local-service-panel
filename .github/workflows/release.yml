@@ -1,0 +1,60 @@
+name: Release
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    name: Build and Release
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: app/package-lock.json
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust dependencies
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: app/src-tauri
+
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: app
+
+      - name: Build Agent
+        run: |
+          go build -ldflags "-X 'github.com/user/local-service-panel/agent/internal/version.Version=${{ github.ref_name }}'" -o agent.exe ./cmd/agent
+        working-directory: agent
+
+      - name: Build Tauri MSI
+        run: npx tauri build --bundles msi
+        working-directory: app
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ github.ref_name }}
+          body: |
+            ## Local Service Panel ${{ github.ref_name }}
+
+            ### Downloads
+            - Windows MSI Installer: `Local Service Panel_${{ github.ref_name }}_x64_en-US.msi`
+            - Agent CLI: `agent.exe`
+          files: |
+            app/src-tauri/target/release/bundle/msi/*.msi
+            agent/agent.exe
