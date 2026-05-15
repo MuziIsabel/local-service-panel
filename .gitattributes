@@ -1,0 +1,14 @@
+* text=auto
+*.go text
+*.ts text
+*.tsx text
+*.json text
+*.md text
+*.yaml text
+*.yml text
+*.ps1 text eol=crlf
+*.sh text eol=lf
+*.bat text eol=crlf
+*.css text
+*.html text
+*.js text
